@@ -3,11 +3,15 @@
 
 <head>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <link href='https://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet'>
     <title>Library Management System</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<script src="js/script.js"></script>
+
+<script src="js/index.js"></script>
+
 <body onload='main()'>
+    <h2>Library Management System</h2>
     <table class='book-table' id='tbl' border=1>
         <tr>
             <th>Number</th>
@@ -15,11 +19,16 @@
             <th>Author</th>
             <th>Publisher</th>
             <th>Date</th>
-            <th>Actions</th>
+            <th colspan="2">Actions</th>
         </tr>
     </table>
-    <button onclick="location.href='add.html'" >
+    <button onclick="location.href='editbook.html?action=add'">
         Add book</button>
+    <button onclick="location.href='list.html?title=author'">
+        Authors</button>
+    <button onclick="location.href='list.html?title=publisher'">
+        Publishers</button>
 </body>
+
 
 </html>
