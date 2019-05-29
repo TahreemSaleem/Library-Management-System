@@ -32,6 +32,7 @@ function urlParser(url_string) {
         const array = [...new Map(JSON.parse(map)).values()];
         //TODO: make this better
         [document.getElementById("name").value, document.getElementById("author").value, document.getElementById("publisher").value, document.getElementById("date").value] = array;
+        document.getElementById("name").readOnly = true;
     }
 }
 
@@ -166,4 +167,5 @@ function validate(book) {
                 return false;
             }
         });
+    return true;
 }
