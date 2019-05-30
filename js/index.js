@@ -1,37 +1,43 @@
+const localstorage_values = [];
+function init_localstorage(){
+    for (let i = 0, len = localStorage.length; i < len; ++i) {
+        localstorage_values.push(JSON.parse(localStorage.getItem(localStorage.key(i))));
+    }
+}
 /** entry point of LMS, generates a table from data in local storage 
  */
 function main() {
+    init_localstorage();
     let tbl = document.getElementById('tbl');
-    const items = {...localStorage };
-    Object.entries(items).forEach(
-        ([key, value]) => {
-            let tr = document.createElement('tr');
-            let array = [...new Map(JSON.parse(value)).values()];
-            addCell(tr)
-            array.forEach((value) => {
-                addCell(tr, value);
-            });
-            addBtn(tr, 'delete', "remove(this);")
-            addBtn(tr, 'update', "update(this);")
-            tbl.appendChild(tr)
-        }
-    );
+    localstorage_values.map(book => {
+        let tr = document.createElement('tr');
+        addCell(tr)
+        addCell(tr, book.name);
+        addCell(tr, book.author);
+        addCell(tr, book.publisher);
+        addCell(tr, book.date);
+        addBtn(tr, 'delete', "remove(this);")
+        addBtn(tr, 'update', "update(this);")
+        tbl.appendChild(tr)
+    })
 }
 /**
  * extracts parameters from url to know whether to call add logic or update logic
  * @param {string} url_string   
  */
 function urlParser(url_string) {
+    init_localstorage();
     const url = new URL(url_string);
     const action = url.searchParams.get("action");
-    if (action == 'add') {
+    if (action === 'add') {
         document.getElementById("heading").innerHTML = 'Add a Book';
-    } else if (action == 'update') {
+    } else if (action === 'update') {
         document.getElementById("heading").innerHTML = 'Update Book';
-        const map = localStorage.getItem(url.searchParams.get("key"));
-        const array = [...new Map(JSON.parse(map)).values()];
-        //TODO: make this better
-        [document.getElementById("name").value, document.getElementById("author").value, document.getElementById("publisher").value, document.getElementById("date").value] = array;
+        const book = JSON.parse(localStorage.getItem(url.searchParams.get("key")));
+        document.getElementById("name").value = book.name;
+        document.getElementById("author").value = book.author;
+        document.getElementById("publisher").value = book.publisher;
+        document.getElementById("date").value = book.date;
         document.getElementById("name").readOnly = true;
     }
 }
@@ -43,33 +49,29 @@ function urlParser(url_string) {
  */
 
 function getList(url_string) {
+    init_localstorage();
     const url = new URL(url_string);
     const title = url.searchParams.get("title");
-    const items = {...localStorage };
     const tbl = document.getElementById('tbl');
-    let map = {};
+    let auth_pub = {};
     if (title == 'author') {
         document.getElementById("title").innerHTML = 'Author';
 
     } else if (title == 'publisher') {
         document.getElementById("title").innerHTML = 'Publisher';
     }
-    Object.entries(items).forEach(
-        ([key, value]) => {
-            key = new Map(JSON.parse(value)).get(title);
-            map[key] = (map[key] + 1) || 1;
-        }
-    );
-    Object.entries(map).forEach(
-        ([key, value]) => {
-            let tr = document.createElement('tr');
-            addCell(tr);
-            addCell(tr, key);
-            addCell(tr, value);
-            addBtn(tr, 'delete', "removeCascade(this);")
-            tbl.appendChild(tr)
-        }
-    );
+    localstorage_values.map(book => {
+        auth_pub[book[title]] = (auth_pub[book[title]] + 1) || 1;
+    });
+
+    for (const key in auth_pub) {
+        let tr = document.createElement('tr');
+        addCell(tr);
+        addCell(tr, key);
+        addCell(tr, auth_pub[key]);
+        addBtn(tr, 'delete', "removeCascade(this);")
+        tbl.appendChild(tr);
+    }
 }
 /**
  * removes the book from local storage when author/ publisher removes
@@ -77,18 +79,14 @@ function getList(url_string) {
  */
 
 function removeCascade(instance) {
-    console.log(typeof instance)
     let parent = instance.parentNode.parentNode;
-    const title = document.getElementById('title').innerHTML;
+    const title = document.getElementById('title').innerHTML.toLowerCase();
     const name = parent.childNodes[1].innerText;
-    const items = {...localStorage };
-    Object.entries(items).forEach(
-        ([key, value]) => {
-            if (new Map(JSON.parse(value)).get(title.toLowerCase()) == name) {
-                localStorage.removeItem(key);
-            }
+    localstorage_values.map((book) => {
+        if (book[title] === name) {
+            localStorage.removeItem(book.name);
         }
-    );
+    });
     parent.parentNode.removeChild(parent);
 }
 
@@ -98,8 +96,8 @@ function removeCascade(instance) {
  */
 function update(instance) {
     let parent = instance.parentNode.parentNode;
-    const key = parent.childNodes[1].innerText;
-    window.location.assign(`editbook.html?action=update&key=${key}`);
+    const bookkey = parent.childNodes[1].innerText;
+    window.location.assign(`editbook.html?action=update&key=${bookkey}`);
 }
 
 /**
@@ -108,8 +106,8 @@ function update(instance) {
  */
 function remove(instance) {
     let parent = instance.parentNode.parentNode;
-    const name = parent.childNodes[1].innerText;
-    localStorage.removeItem(name);
+    const book_name = parent.childNodes[1].innerText;
+    localStorage.removeItem(book_name);
     parent.parentNode.removeChild(parent);
 }
 
@@ -144,28 +142,31 @@ function addBtn(tr, value, fnct) {
  * adds a book data inside local storage
  */
 function addBook() {
-    let book = new Map();
-    book.set('name', document.getElementById("name").value);
-    book.set('author', document.getElementById("author").value);
-    book.set('publisher', document.getElementById("publisher").value);
-    book.set('date', document.getElementById("date").value);
-    if (validate([...book.values()])) {
-        window.localStorage.setItem(book.get('name'), JSON.stringify([...book.entries()]));
+    let book = {
+        'name': document.getElementById("name").value,
+        'author': document.getElementById("author").value,
+        'publisher': document.getElementById("publisher").value,
+        'date': document.getElementById("date").value,
+    }
+    if (validate(book)) {
+        localStorage.setItem(book.name, JSON.stringify(book));
         window.location = "index.html";
     }
 }
+
 /**
- * checks duplicate values
+ * checks duplicate valuesp
+ * 
  * @param {array} book 
  */
 function validate(book) {
-    const items = {...localStorage };
-    Object.entries(items).forEach(
-        ([key, value]) => {
-            if (JSON.stringify(book).toLowerCase() == JSON.stringify([...new Map(JSON.parse(value)).values()]).toLowerCase()) {
-                alert('duplicate enteries not allowed');
-                return false;
-            }
-        });
+    localstorage_values.map((ls_book) => {
+        if (JSON.stringify(ls_book) === JSON.stringify(book) ) {
+            //alert('duplicate enteries not allowed');
+            return false;
+        }
+    });
     return true;
 }
+
+
